@@ -1,8 +1,7 @@
 ﻿using System.Linq;
-using StardewModdingAPI.Events;
 using StardewModdingAPI;
+using StardewModdingAPI.Events;
 using StardewValley;
-using StardewValley.Menus;
 
 namespace SendItemsMultiplayer
 {
@@ -16,10 +15,11 @@ namespace SendItemsMultiplayer
 
             helper.Events.Input.ButtonPressed += OnButtonPressed;
         }
-        
+
         private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
         {
-            if (!Context.IsWorldReady || e.Button != _config.SendHotkey || Game1.player.CurrentItem == null || !Game1.player.CanMove)
+            if (!Context.IsWorldReady || e.Button != _config.SendHotkey || Game1.player.CurrentItem == null ||
+                !Game1.player.CanMove)
                 return;
 
             var choices = Game1.getOnlineFarmers()
@@ -32,21 +32,24 @@ namespace SendItemsMultiplayer
             }
 
             choices.Add(new Response("", "Cancel Trade"));
-            Game1.currentLocation.createQuestionDialogue($"Send '{Game1.player.CurrentItem.Name}' to...", choices.ToArray(), DialogueSet);
+            var question = Game1.player.CurrentItem.Stack == 1
+                ? $"Send '{Game1.player.CurrentItem.DisplayName}' to..."
+                : $"Send {Game1.player.CurrentItem.Stack} '{Game1.player.CurrentItem.DisplayName}' to...";
+            Game1.currentLocation.createQuestionDialogue(question, choices.ToArray(), DialogueSet);
         }
-        
-        private void DialogueSet(Farmer who, string dialogueId)
+
+        private static void DialogueSet(Farmer who, string dialogueId)
         {
             if (string.IsNullOrWhiteSpace(dialogueId)) return;
-            
+
             var l1 = long.Parse(dialogueId);
             var receiver = Game1.getOnlineFarmers().First(f => f.UniqueMultiplayerID == l1);
 
             var gift = who.CurrentItem.getOne();
             gift.Stack = who.CurrentItem.Stack;
-            
+
             who.team.SendProposal(receiver, ProposalType.Gift, gift);
-            Game1.activeClickableMenu = new PendingProposalDialog();
+            Game1.activeClickableMenu = new MyGiftDialog();
         }
     }
 }
